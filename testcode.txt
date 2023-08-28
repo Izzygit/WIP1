@@ -1,0 +1,120 @@
+static float select_current(data *d) {
+	float m;
+	float b;
+	float current = 0;
+	float current_min = 0;
+	float scale_angle_min = 0;
+	float scale_angle_max = 1;
+	float current_max = 0;
+	float kp = 5;
+	float current1 = .5;
+	float pitch1 = .1;
+	float current2 = 2;
+	float pitch2 = .4;
+	float current3 = 2.7;
+	float pitch3 = .5;
+	float current4 = 11.5;
+	float pitch4 = 1;
+	float current5 = 50;
+	float pitch5 = 2;
+	float current6 = 120;
+	float pitch6 = 3;
+	float proportional = .3;
+	float abs_prop_smooth
+	abs_prop_smooth = proportional;
+
+	//Determine the correct current to use based on prop_smooth
+	if (abs_prop_smooth > pitch6 && current_count==6) {
+		current_min = current5;
+		scale_angle_min = pitch5;
+		current_max = current6;
+		scale_angle_max =  pitch6;
+	} else if (abs_prop_smooth > pitch5 && current_count>=5) {
+		if (current6>0) {
+			current_min = current5;
+			scale_angle_min = pitch5;
+			current_max = current6;
+			scale_angle_max = pitch6;
+		} else {
+			current_min = current4;
+			scale_angle_min = pitch4;
+			current_max = current5;
+			scale_angle_max = pitch5;
+		}
+	} else if (abs_prop_smooth > pitch4 && current_count>=4) {
+		if (current5>0) {
+			current_min = current4;
+			scale_angle_min = pitch4;
+			current_max = current5;
+			scale_angle_max = pitch5;
+		} else {
+			current_min = current3;
+			scale_angle_min = pitch3;
+			current_max = current4;
+			scale_angle_max = pitch4;
+		}	
+	} else if (abs_prop_smooth > pitch3 && current_count>=3) {
+		if (current4>0) {
+			current_min = current3;
+			scale_angle_min = pitch3;
+			current_max = current4;
+			scale_angle_max = pitch4;
+		} else {
+			current_min = current2;
+			scale_angle_min = pitch2;
+			current_max = current3;
+			scale_angle_max = pitch3;
+		}
+	} else if (abs_prop_smooth > pitch2 && current_count>=2) {
+		if (current3>0) {
+			current_min = current2;
+			scale_angle_min = pitch2;
+			current_max = current3;
+			scale_angle_max = pitch3;
+		} else {
+			current_min = current1;
+			scale_angle_min = pitch1;
+			current_max = current2;
+			scale_angle_max = pitch2;
+		}
+	} else if (abs_prop_smooth > pitch1 && current1>0) {
+		if (current2>0) {
+			current_min = current1;
+			scale_angle_min = pitch1;
+			current_max = current2;
+			scale_angle_max = pitch2;
+		} else {
+			current_min =  kp * .01;
+			scale_angle_min = .01;
+			current_max = current1;
+			scale_angle_max = pitch1;
+		}
+	} else if (current1>0 && pitch1 > 0) {
+		current_min = kp * .01;
+		current_max = current1;
+		scale_angle_min = .01;
+		scale_angle_max = pitch1;
+	} else {
+		current = kp * proportional;
+		debug10 = current;
+		return current;
+		//current_min = kp * proportional;
+		//current_max = kp * proportional;
+		//scale_angle_min = 0;
+		//scale_angle_max = 1; //Any value but zero can be used because current_min=current_max
+	}
+	
+	//Scale the kp values according to prop_smooth
+	if (scale_angle_min == scale_angle_max || scale_angle_max < scale_angle_min) { //Check that the angles make sense. Use current_min if they do not.
+		current = kp * proportional;
+	} else if (current_max < current_min) {
+		current = kp * proportional;
+	} else {
+		m = (current_max - current_min) / (scale_angle_max - scale_angle_min); 	//calcs slope between points (scale angle min, min kp) and (scale angle max, max kp)
+		b = current_max - m * scale_angle_max;				//calcs y-int between points (scale angle min, min kp) and (scale angle max, max kp)
+		current = m * fabsf(prop_smooth) + b; // scale kp between min and max with the caluclated equation
+		current *= SIGN(prop_smooth)
+		//current = ((current_max - current_min) / (scale_angle_max - scale_angle_min)) * fabsf(prop_smooth) + (current_max - ((current_max - current_min) / (scale_angle_max - scale_angle_min)) * scale_angle_max); 	//+b
+	}
+	return current;
+}
